@@ -90,6 +90,25 @@ module ActiveRecord
       include Redshift::SchemaStatements
       include Redshift::DatabaseStatements
 
+      # Rails 8.1+ compatibility: mark_transaction_written_if_write was removed
+      # and replaced with mark_transaction_written (no parameters).
+      # This method provides backward compatibility for our adapter.
+      if ActiveRecord.version >= Gem::Version.new('8.1.0')
+        def mark_transaction_written_if_write(sql) # :nodoc:
+          transaction = current_transaction
+          if transaction.open? && write_query?(sql)
+            mark_transaction_written
+          end
+        end
+      end
+
+      # Compatibility: in_transaction? is defined in PostgreSQLAdapter but not in AbstractAdapter.
+      # Since RedshiftAdapter inherits from AbstractAdapter (not PostgreSQLAdapter),
+      # we need to provide this method. It's used for prepared statement cache handling.
+      def in_transaction? # :nodoc:
+        open_transactions > 0
+      end
+
       def schema_creation # :nodoc:
         Redshift::SchemaCreation.new self
       end
@@ -357,6 +376,16 @@ module ActiveRecord
           DatabaseAlreadyExists.new(message, sql: sql, binds: binds)
         else
           super
+        end
+      end
+
+      # Rails 8.1 deprecated AbstractAdapter#check_if_write_query
+      # Implement it here for compatibility if it doesn't exist in the parent class
+      unless AbstractAdapter.method_defined?(:check_if_write_query)
+        def check_if_write_query(sql)
+          return unless preventing_writes? && write_query?(sql)
+
+          raise ActiveRecord::ReadOnlyError, "Write query attempted while in readonly mode: #{sql}"
         end
       end
 
