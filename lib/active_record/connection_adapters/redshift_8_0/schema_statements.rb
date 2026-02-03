@@ -152,12 +152,13 @@ module ActiveRecord
             default_value = extract_value_from_default(default)
             type_metadata = fetch_type_metadata(column_name, type, oid, fmod)
             default_function = extract_default_function(default_value, default)
-            new_column(column_name, default_value, type_metadata, !notnull, table_name, default_function)
+            cast_type = get_oid_type(oid.to_i, fmod.to_i, column_name, type)
+            new_column(column_name, default_value, type_metadata, !notnull, table_name, default_function, cast_type: cast_type)
           end
         end
 
-        def new_column(name, default, sql_type_metadata = nil, null = true, _table_name = nil, default_function = nil) # :nodoc:
-          RedshiftColumn.new(name, default, sql_type_metadata, null, default_function)
+        def new_column(name, default, sql_type_metadata = nil, null = true, _table_name = nil, default_function = nil, cast_type: nil) # :nodoc:
+          RedshiftColumn.new(name, default, sql_type_metadata, null, default_function, cast_type: cast_type)
         end
 
         # Returns the current database name.
