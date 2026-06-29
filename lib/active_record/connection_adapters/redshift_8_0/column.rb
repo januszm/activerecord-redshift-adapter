@@ -9,18 +9,8 @@ module ActiveRecord
       mattr_reader :array, default: false
       alias array? array
 
-      # Rails 8.1 changed Column#initialize signature to require cast_type as second argument:
-      #   Old (8.0): initialize(name, default, sql_type_metadata, null, ...)
-      #   New (8.1): initialize(name, cast_type, default, sql_type_metadata, null, ...)
-      if ActiveRecord.version >= Gem::Version.new("8.1")
-        def initialize(name, default, sql_type_metadata, null = true, default_function = nil, cast_type: nil, **)
-          cast_type ||= ActiveRecord::Type::Value.new
-          super(name, cast_type, default, sql_type_metadata, null, default_function)
-        end
-      else
-        def initialize(name, default, sql_type_metadata, null = true, default_function = nil, **)
-          super name, default, sql_type_metadata, null, default_function
-        end
+      def initialize(name, default, sql_type_metadata, null = true, default_function = nil, **)
+        super name, default, sql_type_metadata, null, default_function
       end
     end
   end
